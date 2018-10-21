@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/hyperledger/fabric/common/util"
+	"github.com/hyperledger/fabric/core/chaincode/lib/cid"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
 	"strconv"
@@ -18,6 +19,16 @@ func (t *MyChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 
 func (t *MyChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 	return shim.Success(nil)
+}
+
+func (t *MyChaincode) doGetID(stub shim.ChaincodeStubInterface) pb.Response {
+	id, err := cid.GetID(stub)
+
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	return shim.Success([]byte(id))
 }
 
 func (t *MyChaincode) doGetTxID(stub shim.ChaincodeStubInterface, key string) pb.Response {
@@ -39,8 +50,8 @@ func (t *MyChaincode) doGetTxTimestamp(stub shim.ChaincodeStubInterface, key str
 	return shim.Success([]byte(txTimestamp.String()))
 }
 
-func (t *MyChaincode) doGetCreator(stub shim.ChaincodeStubInterface, key string) pb.Response {
-	fmt.Printf(`GetCreator("%s") \n<Begin>\n`, key)
+func (t *MyChaincode) doGetCreator(stub shim.ChaincodeStubInterface) pb.Response {
+	fmt.Printf(`GetCreator() \n<Begin>\n`)
 	byts, err := stub.GetCreator()
 
 	if err != nil {
@@ -61,7 +72,7 @@ func (t *MyChaincode) doGetChannelID(stub shim.ChaincodeStubInterface, key strin
 func (t *MyChaincode) doGetFunctionAndParameters(stub shim.ChaincodeStubInterface) pb.Response {
 	fmt.Printf(`GetFunctionAndParameters() \n<Begin>\n`)
 	functionName, args := stub.GetFunctionAndParameters()
-	msg := fmt.Sprintf(`{"function_name": "%s", "args": ["s%", "%s"]}`, functionName, args[0], args[1])
+	msg := fmt.Sprintf(`{"function_name": "%s", "args": ["%s", "%s"]}`, functionName, args[0], args[1])
 	fmt.Println("<End>")
 	return shim.Success([]byte(msg))
 }
@@ -546,6 +557,61 @@ func (t *MyChaincode) doSetEvent(stub shim.ChaincodeStubInterface) pb.Response {
 	} else {
 		return shim.Error(err.Error())
 	}
+}
+
+func (t *MyChaincode) doAssertAttributeValue(stub shim.ChaincodeStubInterface) pb.Response {
+	fmt.Println(`CID.AssertAttributeValue() \n<Begin>`)
+	attrName := "email"
+	attrVal := "user1@org1"
+	err := cid.AssertAttributeValue(stub, attrName, attrVal)
+	if err != nil {
+		fmt.Printf(`CID.AssertAttributeValue('%s', '%s') failed. Error: '%s'`, attrName, attrVal, err.Error())
+		return shim.Error(err.Error())
+	}
+	fmt.Printf(`CID.AssertAttributeValue('%s', '%s') successfully.`, attrName, attrVal)
+	return shim.Success(nil)
+}
+
+func (t *MyChaincode) doGetAttributeValue(stub shim.ChaincodeStubInterface) pb.Response {
+	fmt.Println(`CID.GetAttributeValue() \n<Begin>`)
+	attrName := "admin"
+	attrVal, ok, err := cid.GetAttributeValue(stub, attrName)
+	if err != nil {
+		fmt.Printf(`CID.GetAttributeValue('%s') failed. Error: '%s'`, attrName, err.Error())
+		return shim.Error(err.Error())
+	} else if !ok {
+		fmt.Printf(`CID.GetAttributeValue('%s') failed. Not found.`, attrName)
+		return shim.Success(nil)
+	}
+
+	fmt.Printf(`CID.GetAttributeValue('%s') successfully. Val: '%s'`, attrName, attrVal)
+	return shim.Success(nil)
+}
+
+func (t *MyChaincode) doGetMSPID(stub shim.ChaincodeStubInterface) pb.Response {
+	fmt.Println(`CID.GetMSPID() \n<Begin>`)
+
+	mspID, err := cid.GetMSPID(stub)
+	if err != nil {
+		fmt.Printf(`CID.GetMSPID() failed. Error: '%s'`, err.Error())
+		return shim.Error(err.Error())
+	}
+
+	fmt.Printf(`CID.GetMSPID() successfully. MSPID: '%s'`, mspID)
+	return shim.Success(nil)
+}
+
+func (t *MyChaincode) doGetCIDID(stub shim.ChaincodeStubInterface) pb.Response {
+	fmt.Println(`CID.GetID() \n<Begin>`)
+
+	mspID, err := cid.GetID(stub)
+	if err != nil {
+		fmt.Printf(`CID.GetID() failed. Error: '%s'`, err.Error())
+		return shim.Error(err.Error())
+	}
+
+	fmt.Printf(`CID.GetID() successfully. ID: '%s'`, mspID)
+	return shim.Success(nil)
 }
 
 func main() {
